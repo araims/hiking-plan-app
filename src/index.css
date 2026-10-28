@@ -1,0 +1,16 @@
+@import "tailwindcss";
+
+@media print {
+    body {
+      background-color: white !important;
+      color: black !important;
+    }
+    /* アプリ全体の余分なヘッダーやメニュー、ボタン類を強制非表示にする */
+    nav, header, footer, .print\:hidden {
+      display: none !important;
+    }
+    /* シャドウや角丸をフラットにして印刷に最適化 */
+    .shadow-sm, .shadow-md, .shadow-xl {
+      box-shadow: none !important;
+    }
+  }

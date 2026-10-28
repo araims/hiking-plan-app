@@ -1,0 +1,15 @@
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Production / Build
+dist
+build
+
+# Firebase
+.firebase
+
+# OS generated files
+.DS_Store
+Thumbs.db

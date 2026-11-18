@@ -1,6 +1,6 @@
 // src/components/PlanDetail.tsx
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Calendar, Users, Check, Save, Plus, X, Upload, Trash2, Printer, AlertCircle, Phone, FileText, ShieldAlert, MessageSquare, Send } from 'lucide-react';
+import { ArrowLeft, Calendar, Users, Check, Save, Plus, X, Upload, Trash2, Printer, AlertCircle, Phone, FileText, ShieldAlert, MessageSquare, Send, MapPin, Cake } from 'lucide-react';
 import type { Member, MountainPlan } from '../types';
 import { db, updatePlanInDb, uploadPlanFile, deletePlanFromDb } from '../services/firestore';
 import { doc, getDoc } from 'firebase/firestore';
@@ -158,7 +158,7 @@ export default function PlanDetail({ planId, members, onBack }: PlanDetailProps)
     );
   };
 
-  // 更新・保存処理 (下書き保存 or 提出)
+  // 更新・保存処理 (下書き保存 or 提出) - メンバーの詳細情報も含めて保存
   const handleSaveOrSubmit = async (targetStatus: 'draft' | 'pending') => {
     if (isSubmitting || !plan) return;
     if (!title.trim() || !startDate) {
@@ -172,7 +172,11 @@ export default function PlanDetail({ planId, members, onBack }: PlanDetailProps)
         const found = members.find(m => m.id === sp.memberId);
         return {
           name: found ? found.name : '不明なメンバー',
-          role: sp.role
+          role: sp.role,
+          address: found?.address || '',
+          birthDate: found?.birthDate || '',
+          phone: found?.phone || '',
+          emergencyPhone: found?.emergencyPhone || '',
         };
       });
 
@@ -284,11 +288,12 @@ export default function PlanDetail({ planId, members, onBack }: PlanDetailProps)
   }
 
   const isEditable = plan.status === 'draft' || plan.status === 'in_revision';
+  const isApproved = plan.status === 'approved'; // 承認済み判定
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'approved':
-        return <span className="text-[10px] font-bold px-2.5 py-1 rounded-md bg-emerald-100 text-emerald-800">承認</span>;
+        return <span className="text-[10px] font-bold px-2.5 py-1 rounded-md bg-emerald-100 text-emerald-800">承認済</span>;
       case 'under_review':
         return <span className="text-[10px] font-bold px-2.5 py-1 rounded-md bg-blue-100 text-blue-800">審査中</span>;
       case 'pending':
@@ -441,7 +446,7 @@ export default function PlanDetail({ planId, members, onBack }: PlanDetailProps)
           <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm space-y-3">
             <h3 className="text-xs font-bold text-stone-400 uppercase tracking-wider flex items-center gap-1.5">
               <Users size={14} className="text-emerald-600" />
-              参加メンバー・役割の選択
+              参加メンバー・役割の選択（住所・生年月日・連絡先も紐づきます）
             </h3>
             <div className="space-y-2 pt-1">
               {members.map((m) => {
@@ -451,34 +456,58 @@ export default function PlanDetail({ planId, members, onBack }: PlanDetailProps)
                 return (
                   <div 
                     key={m.id} 
-                    className={`p-3 rounded-xl border text-xs flex items-center justify-between transition ${
+                    className={`p-3 rounded-xl border text-xs flex flex-col gap-2 transition ${
                       isSelected ? 'bg-emerald-50/50 border-emerald-200' : 'bg-stone-50 border-stone-200'
                     }`}
                   >
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={() => handleToggleMember(m.id)}
-                        className="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer"
-                      />
-                      <div>
-                        <span className="font-bold text-stone-800">{m.name}</span>
-                        <span className="text-[10px] text-stone-400 ml-1.5">({m.roleInClub})</span>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => handleToggleMember(m.id)}
+                          className="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer"
+                        />
+                        <div>
+                          <span className="font-bold text-stone-800 text-sm">{m.name}</span>
+                          <span className="text-[10px] text-stone-400 ml-1.5 font-medium">({m.roleInClub})</span>
+                        </div>
                       </div>
+
+                      {isSelected && (
+                        <select
+                          value={participantObj?.role || '一般'}
+                          onChange={(e) => handleRoleChange(m.id, e.target.value)}
+                          className="p-1.5 bg-white border border-stone-300 rounded-lg text-xs font-bold text-stone-700 focus:outline-none focus:border-emerald-500 cursor-pointer"
+                        >
+                          <option value="CL">CL (リーダー)</option>
+                          <option value="SL">SL (サブ)</option>
+                          <option value="一般">一般参加</option>
+                        </select>
+                      )}
                     </div>
 
-                    {isSelected && (
-                      <select
-                        value={participantObj?.role || '一般'}
-                        onChange={(e) => handleRoleChange(m.id, e.target.value)}
-                        className="p-1.5 bg-white border border-stone-300 rounded-lg text-xs font-bold text-stone-700 focus:outline-none focus:border-emerald-500 cursor-pointer"
-                      >
-                        <option value="CL">CL (リーダー)</option>
-                        <option value="SL">SL (サブ)</option>
-                        <option value="一般">一般参加</option>
-                      </select>
-                    )}
+                    {/* メンバーの詳細情報表示 */}
+                    <div className="text-[11px] text-stone-500 pl-6 flex flex-wrap gap-x-3 gap-y-1">
+                      {m.address && (
+                        <span className="flex items-center gap-0.5">
+                          <MapPin size={11} className="text-stone-400" /> 住所: {m.address}
+                        </span>
+                      )}
+                      {m.birthDate && (
+                        <span className="flex items-center gap-0.5">
+                          <Cake size={11} className="text-stone-400" /> 生年月日: {m.birthDate}
+                        </span>
+                      )}
+                      {m.phone && (
+                        <span className="flex items-center gap-0.5">
+                          <Phone size={11} className="text-stone-400" /> TEL: {m.phone}
+                        </span>
+                      )}
+                      <span className="flex items-center gap-0.5 text-stone-600 font-medium">
+                        <Phone size={11} className="text-stone-400" /> 緊急: {m.emergencyPhone || '未設定'}
+                      </span>
+                    </div>
                   </div>
                 );
               })}
@@ -610,7 +639,7 @@ export default function PlanDetail({ planId, members, onBack }: PlanDetailProps)
         /* ================= 閲覧モード ＋ 印刷用最適化レイアウト ================= */
         <div className="space-y-4 print:space-y-3">
           
-          {/* 印刷専用のタイトルヘッダー（通常時は非表示、印刷時のみ上部に表示） */}
+          {/* 印刷専用のタイトルヘッダー */}
           <div className="hidden print:block text-center border-b-2 border-stone-800 pb-3 mb-4">
             <h1 className="text-xl font-black tracking-widest text-stone-900">山 行 計 画 書</h1>
             <p className="text-[10px] text-stone-500 mt-0.5">山岳会公式提出書類</p>
@@ -639,15 +668,25 @@ export default function PlanDetail({ planId, members, onBack }: PlanDetailProps)
               </div>
             </div>
 
-            {/* 参加者一覧 */}
+            {/* 参加者一覧（住所・生年月日・電話番号などの詳細を表示） */}
             <div className="space-y-2">
-              <h3 className="text-xs font-bold text-stone-400 uppercase tracking-wider print:text-stone-800">参加メンバー</h3>
-              <div className="space-y-1.5 print:space-y-1">
+              <h3 className="text-xs font-bold text-stone-400 uppercase tracking-wider print:text-stone-800">参加メンバー詳細</h3>
+              <div className="space-y-2 print:space-y-1">
                 {plan.participants && plan.participants.length > 0 ? (
-                  plan.participants.map((p, idx) => (
-                    <div key={idx} className="flex justify-between items-center p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs print:bg-white print:border-stone-300 print:py-1">
-                      <span className="font-bold text-stone-800">{p.name}</span>
-                      <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-md font-bold text-[10px] print:bg-transparent print:text-black print:border print:border-stone-400">{p.role}</span>
+                  plan.participants.map((p: any, idx: number) => (
+                    <div key={idx} className="p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs space-y-1 print:bg-white print:border-stone-300">
+                      <div className="flex justify-between items-center">
+                        <span className="font-bold text-stone-800 text-sm">{p.name}</span>
+                        <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-md font-bold text-[10px] print:bg-transparent print:text-black print:border print:border-stone-400">
+                          {p.role}
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-[11px] text-stone-600 pt-1">
+                        {p.address && <span>住所: {p.address}</span>}
+                        {p.birthDate && <span>生年月日: {p.birthDate}</span>}
+                        {p.phone && <span>TEL: {p.phone}</span>}
+                        {p.emergencyPhone && <span className="font-medium text-stone-700">緊急連絡先: {p.emergencyPhone}</span>}
+                      </div>
                     </div>
                   ))
                 ) : (
@@ -691,7 +730,7 @@ export default function PlanDetail({ planId, members, onBack }: PlanDetailProps)
               </div>
             </div>
 
-            {/* 添付ファイル (印刷時はURLの代わりにファイル名のみリスト表示) */}
+            {/* 添付ファイル */}
             <div className="space-y-2">
               <h3 className="text-xs font-bold text-stone-400 uppercase tracking-wider flex items-center gap-1 print:text-stone-800">
                 <FileText size={14} className="text-emerald-600 print:hidden" />
@@ -721,7 +760,7 @@ export default function PlanDetail({ planId, members, onBack }: PlanDetailProps)
               </div>
             </div>
 
-            {/* 印刷時のサイン欄（紙で提出・確認する場合に便利） */}
+            {/* 印刷時のサイン欄 */}
             <div className="hidden print:block pt-8 mt-6 border-t border-stone-400">
               <div className="flex justify-between text-xs text-stone-600">
                 <div>確認印（リーダー）: ___________________</div>
@@ -730,65 +769,67 @@ export default function PlanDetail({ planId, members, onBack }: PlanDetailProps)
             </div>
           </div>
 
-          {/* 審査コメント・アクションセクション (印刷時は完全非表示 print:hidden) */}
-          <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm space-y-4 print:hidden">
-            <h3 className="text-xs font-bold text-stone-400 uppercase tracking-wider flex items-center gap-1.5">
-              <MessageSquare size={14} className="text-emerald-600" />
-              審査コメント・修正依頼のやり取り
-            </h3>
+          {/* 審査コメント・アクションセクション (★承認済みの場合は完全に非表示にする) */}
+          {!isApproved && (
+            <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm space-y-4 print:hidden">
+              <h3 className="text-xs font-bold text-stone-400 uppercase tracking-wider flex items-center gap-1.5">
+                <MessageSquare size={14} className="text-emerald-600" />
+                審査コメント・修正依頼のやり取り
+              </h3>
 
-            <div className="space-y-2">
-              {comments.length > 0 ? (
-                comments.map((c, idx) => (
-                  <div key={idx} className="p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs space-y-1">
-                    <div className="flex justify-between items-center text-[10px] text-stone-400 font-bold">
-                      <span>{c.sender}</span>
-                      <span>{c.date}</span>
+              <div className="space-y-2">
+                {comments.length > 0 ? (
+                  comments.map((c, idx) => (
+                    <div key={idx} className="p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs space-y-1">
+                      <div className="flex justify-between items-center text-[10px] text-stone-400 font-bold">
+                        <span>{c.sender}</span>
+                        <span>{c.date}</span>
+                      </div>
+                      <p className="text-stone-700 whitespace-pre-wrap">{c.text}</p>
                     </div>
-                    <p className="text-stone-700 whitespace-pre-wrap">{c.text}</p>
-                  </div>
-                ))
-              ) : (
-                <p className="text-xs text-stone-400 p-2">まだコメントはありません</p>
-              )}
-            </div>
+                  ))
+                ) : (
+                  <p className="text-xs text-stone-400 p-2">まだコメントはありません</p>
+                )}
+              </div>
 
-            <div className="space-y-2 pt-2 border-t border-stone-100">
-              <textarea
-                rows={2}
-                placeholder="審査コメントや修正指示を入力..."
-                value={newCommentText}
-                onChange={(e) => setNewCommentText(e.target.value)}
-                className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs focus:outline-none focus:border-emerald-500"
-              />
-              <div className="flex justify-between items-center">
-                <div className="flex gap-2">
+              <div className="space-y-2 pt-2 border-t border-stone-100">
+                <textarea
+                  rows={2}
+                  placeholder="審査コメントや修正指示を入力..."
+                  value={newCommentText}
+                  onChange={(e) => setNewCommentText(e.target.value)}
+                  className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs focus:outline-none focus:border-emerald-500"
+                />
+                <div className="flex justify-between items-center">
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleChangeStatus('changes_requested')}
+                      className="px-3.5 py-2 bg-rose-100 hover:bg-rose-200 text-rose-800 rounded-xl text-xs font-bold transition"
+                    >
+                      ④ 修正依頼を送る
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleChangeStatus('approved')}
+                      className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition"
+                    >
+                      ③ 承認する
+                    </button>
+                  </div>
                   <button
                     type="button"
-                    onClick={() => handleChangeStatus('changes_requested')}
-                    className="px-3.5 py-2 bg-rose-100 hover:bg-rose-200 text-rose-800 rounded-xl text-xs font-bold transition"
+                    onClick={handleSendComment}
+                    className="px-4 py-2 bg-stone-800 hover:bg-stone-900 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition"
                   >
-                    ④ 修正依頼を送る
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleChangeStatus('approved')}
-                    className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition"
-                  >
-                    ③ 承認する
+                    <Send size={14} />
+                    コメント送信
                   </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleSendComment}
-                  className="px-4 py-2 bg-stone-800 hover:bg-stone-900 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition"
-                >
-                  <Send size={14} />
-                  コメント送信
-                </button>
               </div>
             </div>
-          </div>
+          )}
         </div>
       )}
     </div>

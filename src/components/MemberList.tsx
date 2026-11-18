@@ -1,13 +1,29 @@
 import React, { useState } from 'react';
-import { UserPlus, UserCheck, Phone, ShieldCheck, Edit2, Trash2, ArrowLeft, Check, X } from 'lucide-react';
+import { UserPlus, Phone, MapPin, Calendar, ShieldCheck, Edit2, Trash2, ArrowLeft, Check } from 'lucide-react';
 import type { Member } from '../types';
 
-// 初期サンプルメンバーデータ
+// 初期サンプルメンバーデータ（必要に応じて新規項目を追加してください）
 export const initialMembers: Member[] = [
-  { id: 'm1', name: '新井 理弘', roleInClub: '役員', emergencyPhone: '090-1234-5678', isApprover: true },
-  { id: 'm2', name: '新井 亜生', roleInClub: '一般会員', emergencyPhone: '090-8765-4321', isApprover: false },
-  { id: 'm3', name: '山田 太郎', roleInClub: '安全管理委員', emergencyPhone: '080-1111-2222', isApprover: true },
-  { id: 'm4', name: '佐藤 花子', roleInClub: '一般会員', emergencyPhone: '080-3333-4444', isApprover: false },
+  { 
+    id: 'm1', 
+    name: '新井 理弘', 
+    roleInClub: '役員', 
+    address: '北海道上川郡美瑛町東町', 
+    birthDate: '1965-10-30', 
+    phone: '090-0000-0000', 
+    emergencyPhone: '090-1234-5678', 
+    isApprover: true 
+  },
+  { 
+    id: 'm2', 
+    name: '新井 亜生', 
+    roleInClub: '一般会員', 
+    address: '北海道上川郡美瑛町東町', 
+    birthDate: '1970-01-01', 
+    phone: '090-0000-0001', 
+    emergencyPhone: '090-8765-4321', 
+    isApprover: false 
+  },
 ];
 
 interface MemberListProps {
@@ -31,12 +47,18 @@ export default function MemberList({
   // フォーム用ステート
   const [name, setName] = useState('');
   const [roleInClub, setRoleInClub] = useState<'役員' | '一般会員' | '安全管理委員'>('一般会員');
+  const [address, setAddress] = useState('');
+  const [birthDate, setBirthDate] = useState('');
+  const [phone, setPhone] = useState('');
   const [emergencyPhone, setEmergencyPhone] = useState('');
   const [isApprover, setIsApprover] = useState(false);
 
   const resetForm = () => {
     setName('');
     setRoleInClub('一般会員');
+    setAddress('');
+    setBirthDate('');
+    setPhone('');
     setEmergencyPhone('');
     setIsApprover(false);
     setEditingId(null);
@@ -46,8 +68,11 @@ export default function MemberList({
   const handleStartEdit = (member: Member) => {
     setEditingId(member.id);
     setName(member.name);
-    setRoleInClub(member.roleInClub);
-    setEmergencyPhone(member.emergencyPhone);
+    setRoleInClub(member.roleInClub || '一般会員');
+    setAddress(member.address || '');
+    setBirthDate(member.birthDate || '');
+    setPhone(member.phone || '');
+    setEmergencyPhone(member.emergencyPhone || '');
     setIsApprover(member.isApprover);
     setIsFormOpen(true);
   };
@@ -56,21 +81,23 @@ export default function MemberList({
     e.preventDefault();
     if (!name.trim()) return;
 
+    const memberData = {
+      name,
+      roleInClub,
+      address,
+      birthDate,
+      phone,
+      emergencyPhone,
+      isApprover,
+    };
+
     if (editingId) {
       onUpdateMember({
         id: editingId,
-        name,
-        roleInClub,
-        emergencyPhone,
-        isApprover,
+        ...memberData,
       });
     } else {
-      onAddMember({
-        name,
-        roleInClub,
-        emergencyPhone,
-        isApprover,
-      });
+      onAddMember(memberData);
     }
     resetForm();
   };
@@ -110,19 +137,19 @@ export default function MemberList({
           </h3>
 
           <div className="space-y-2 text-xs">
-            <div>
-              <label className="block text-stone-500 font-medium mb-1">氏名</label>
-              <input
-                type="text"
-                required
-                placeholder="例: 山田 太郎"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:border-emerald-500"
-              />
-            </div>
-
             <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-stone-500 font-medium mb-1">氏名</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="例: 山田 太郎"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
               <div>
                 <label className="block text-stone-500 font-medium mb-1">会内役職</label>
                 <select
@@ -135,9 +162,43 @@ export default function MemberList({
                   <option value="安全管理委員">安全管理委員</option>
                 </select>
               </div>
+            </div>
+
+            <div>
+              <label className="block text-stone-500 font-medium mb-1">住所</label>
+              <input
+                type="text"
+                placeholder="例: 北海道上川郡美瑛町..."
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:border-emerald-500"
+              />
+            </div>
+
+            <div className="grid grid-cols-3 gap-2">
+              <div>
+                <label className="block text-stone-500 font-medium mb-1">生年月日</label>
+                <input
+                  type="date"
+                  value={birthDate}
+                  onChange={(e) => setBirthDate(e.target.value)}
+                  className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:border-emerald-500"
+                />
+              </div>
 
               <div>
-                <label className="block text-stone-500 font-medium mb-1">緊急連絡先 (電話)</label>
+                <label className="block text-stone-500 font-medium mb-1">電話番号（本人）</label>
+                <input
+                  type="tel"
+                  placeholder="090-0000-0000"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-stone-500 font-medium mb-1">緊急連絡先</label>
                 <input
                   type="tel"
                   placeholder="090-0000-0000"
@@ -187,7 +248,7 @@ export default function MemberList({
         
         {members.map((m) => (
           <div key={m.id} className="bg-white p-4 rounded-2xl border border-stone-200 shadow-sm flex justify-between items-center">
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <div className="flex items-center gap-2">
                 <span className="font-bold text-stone-800 text-sm">{m.name}</span>
                 <span className="text-[10px] bg-stone-100 text-stone-600 px-2 py-0.5 rounded-md font-medium">
@@ -200,9 +261,29 @@ export default function MemberList({
                 )}
               </div>
 
-              <div className="flex items-center gap-1 text-[11px] text-stone-500">
-                <Phone size={12} className="text-stone-400" />
-                <span>緊急連絡先: {m.emergencyPhone || '未設定'}</span>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-stone-500">
+                {m.address && (
+                  <span className="flex items-center gap-1">
+                    <MapPin size={12} className="text-stone-400" />
+                    {m.address}
+                  </span>
+                )}
+                {m.birthDate && (
+                  <span className="flex items-center gap-1">
+                    <Calendar size={12} className="text-stone-400" />
+                    {m.birthDate}生
+                  </span>
+                )}
+                {m.phone && (
+                  <span className="flex items-center gap-1">
+                    <Phone size={12} className="text-stone-400" />
+                    TEL: {m.phone}
+                  </span>
+                )}
+                <span className="flex items-center gap-1 font-medium text-stone-600">
+                  <Phone size={12} className="text-stone-400" />
+                  緊急: {m.emergencyPhone || '未設定'}
+                </span>
               </div>
             </div>
 

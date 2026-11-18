@@ -23,9 +23,22 @@ export interface MountainPlan {
 export interface Member {
   id: string;
   name: string;
-  roleInClub: '役員' | '一般会員' | '安全管理委員'; // 会内での役職
-  emergencyPhone: string;
-  isApprover: boolean; // 承認権限を持つか（安全管理委員・役員など）
+  roleInClub: '役員' | '一般会員' | '安全管理委員';
+  address?: string;      // 住所
+  birthDate?: string;    // 生年月日
+  phone?: string;        // 本人電話番号
+  emergencyPhone: string; // 緊急連絡先
+  isApprover: boolean;
+}
+
+// 計画書内の参加者データ型
+export interface PlanParticipant {
+  name: string;
+  role: string;
+  address?: string;      // 住所を追加
+  birthDate?: string;    // 生年月日を追加
+  phone?: string;        // 電話番号を追加
+  emergencyPhone?: string; // 緊急連絡先を追加
 }
 
 // 装備マスターの例

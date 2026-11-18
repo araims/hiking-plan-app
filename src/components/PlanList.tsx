@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Plus, Calendar, Users, ChevronRight, Search } from 'lucide-react';
 import type { MountainPlan } from '../types';
 

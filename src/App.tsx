@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import PlanList from './components/PlanList';
 import PlanCreate from './components/PlanCreate';
 import PlanDetail from './components/PlanDetail';
